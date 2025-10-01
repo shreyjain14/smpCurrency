@@ -111,12 +111,39 @@ public class CompanyManager {
         ConfigurationSection shareDisplay = plugin.getConfig().getConfigurationSection("shares.display");
         String nameTemplate = shareDisplay != null ? shareDisplay.getString("name", "%ticker% Share") : "%ticker% Share";
         java.util.List<String> loreTemplate = shareDisplay != null ? shareDisplay.getStringList("lore") : java.util.List.of("Company: %name%","Ticker: %ticker%");
+        int stackSize = plugin.getConfig().getInt("shares.stack-size", 1);
+        if (stackSize < 1) stackSize = 1;
+        if (stackSize > 64) stackSize = 64;
+
         int issued = 0;
-        for (int i = 0; i < amount; i++) {
-            ItemStack stack = me.shreyjain.smpCurrency.items.CustomItems.createShare(company.id(), company.name(), nameTemplate, loreTemplate);
-            Map<Integer, ItemStack> overflow = recipient.getInventory().addItem(stack);
-            overflow.values().forEach(it -> recipient.getWorld().dropItemNaturally(recipient.getLocation(), it));
-            issued++;
+        if (stackSize == 1) {
+            // One item per share with unique UUID
+            for (int i = 0; i < amount; i++) {
+                ItemStack stack = me.shreyjain.smpCurrency.items.CustomItems.createShare(company.id(), company.name(), nameTemplate, loreTemplate);
+                Map<Integer, ItemStack> overflow = recipient.getInventory().addItem(stack);
+                overflow.values().forEach(it -> recipient.getWorld().dropItemNaturally(recipient.getLocation(), it));
+                issued++;
+            }
+        } else {
+            int remaining = amount;
+            while (remaining > 0) {
+                int thisStack = Math.min(stackSize, remaining);
+                ItemStack stack = me.shreyjain.smpCurrency.items.CustomItems.createShare(company.id(), company.name(), nameTemplate, loreTemplate);
+                // Remove unique share_id so identical stacks can merge
+                var meta = stack.getItemMeta();
+                if (meta != null) {
+                    var pdc = meta.getPersistentDataContainer();
+                    if (me.shreyjain.smpCurrency.items.CustomItems.KEY_SHARE_ID != null) {
+                        pdc.remove(me.shreyjain.smpCurrency.items.CustomItems.KEY_SHARE_ID);
+                    }
+                    stack.setItemMeta(meta);
+                }
+                stack.setAmount(thisStack);
+                Map<Integer, ItemStack> overflow = recipient.getInventory().addItem(stack);
+                overflow.values().forEach(it -> recipient.getWorld().dropItemNaturally(recipient.getLocation(), it));
+                remaining -= thisStack;
+                issued += thisStack;
+            }
         }
         company.totalShares(company.totalShares() + issued);
         save();

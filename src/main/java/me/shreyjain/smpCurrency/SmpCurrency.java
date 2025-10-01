@@ -3,6 +3,7 @@ package me.shreyjain.smpCurrency;
 import me.shreyjain.smpCurrency.commands.CurrencyCommand;
 import me.shreyjain.smpCurrency.commands.CompanyCommand;
 import me.shreyjain.smpCurrency.listeners.PlayerJoinListener;
+import me.shreyjain.smpCurrency.listeners.ShareUpdateListener;
 import me.shreyjain.smpCurrency.managers.CoinManager;
 import me.shreyjain.smpCurrency.managers.CompanyManager;
 import me.shreyjain.smpCurrency.managers.ResourcePackManager;
@@ -41,6 +42,7 @@ public final class SmpCurrency extends JavaPlugin {
 
         // Register listeners
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(this), this);
+        getServer().getPluginManager().registerEvents(new ShareUpdateListener(this), this);
 
         getLogger().info("SmpCurrency plugin has been enabled!");
     }

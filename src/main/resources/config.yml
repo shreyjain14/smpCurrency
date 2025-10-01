@@ -22,6 +22,8 @@ coins:
 
 # Share / Stock Display (placeholders: %ticker%, %name%)
 shares:
+  # Set to 1 for non-stackable individual certificates
+  stack-size: 64
   display:
     name: "&b%ticker% Share"
     lore:

@@ -18,8 +18,8 @@ public final class CustomItems {
 
     private static final NamespacedKey COIN_MODEL_KEY = NamespacedKey.fromString("currency:coin");
     private static final NamespacedKey STOCK_MODEL_KEY = NamespacedKey.fromString("currency:stock");
-    private static final NamespacedKey KEY_COMPANY = NamespacedKey.fromString("smpcurrency:company");
-    private static final NamespacedKey KEY_SHARE_ID = NamespacedKey.fromString("smpcurrency:share_id");
+    public static final NamespacedKey KEY_COMPANY = NamespacedKey.fromString("smpcurrency:company");
+    public static final NamespacedKey KEY_SHARE_ID = NamespacedKey.fromString("smpcurrency:share_id");
 
     private CustomItems() {}
 
@@ -94,6 +94,46 @@ public final class CustomItems {
         if (KEY_SHARE_ID != null) pdc.set(KEY_SHARE_ID, PersistentDataType.STRING, java.util.UUID.randomUUID().toString());
         stack.setItemMeta(meta);
         return stack;
+    }
+
+    // Utility to refresh share display (used by listener)
+    public static void refreshShareDisplay(org.bukkit.plugin.Plugin plugin, org.bukkit.inventory.ItemStack stack, String ticker, String companyName) {
+        if (stack == null || stack.getType() == org.bukkit.Material.AIR) return;
+        org.bukkit.inventory.meta.ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return;
+        meta.setItemModel(STOCK_MODEL_KEY);
+        org.bukkit.configuration.ConfigurationSection shareDisplay = plugin.getConfig().getConfigurationSection("shares.display");
+        String nameTemplate = shareDisplay != null ? shareDisplay.getString("name", "%ticker% Share") : "%ticker% Share";
+        java.util.List<String> loreTemplate = shareDisplay != null ? shareDisplay.getStringList("lore") : java.util.List.of("Company: %name%","Ticker: %ticker%");
+        meta.displayName(legacyToComponent(applyPlaceholders(nameTemplate, ticker, companyName)));
+        if (loreTemplate != null && !loreTemplate.isEmpty()) {
+            java.util.List<net.kyori.adventure.text.Component> lore = new java.util.ArrayList<>();
+            for (String line : loreTemplate) lore.add(legacyToComponent(applyPlaceholders(line, ticker, companyName)));
+            meta.lore(lore);
+        }
+        int configuredStack = plugin.getConfig().getInt("shares.stack-size", 1);
+        if (configuredStack < 1) configuredStack = 1; else if (configuredStack > 64) configuredStack = 64;
+        org.bukkit.persistence.PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        // Always ensure company key
+        if (KEY_COMPANY != null && !pdc.has(KEY_COMPANY, org.bukkit.persistence.PersistentDataType.STRING)) {
+            pdc.set(KEY_COMPANY, org.bukkit.persistence.PersistentDataType.STRING, ticker);
+        }
+        if (configuredStack == 1) {
+            // Ensure unique UUID for non-stackable mode
+            if (KEY_SHARE_ID != null && !pdc.has(KEY_SHARE_ID, org.bukkit.persistence.PersistentDataType.STRING)) {
+                pdc.set(KEY_SHARE_ID, org.bukkit.persistence.PersistentDataType.STRING, java.util.UUID.randomUUID().toString());
+            }
+            // Clamp item amount to 1
+            if (stack.getAmount() != 1) stack.setAmount(1);
+        } else {
+            // Stackable mode: remove UUID so shares can merge
+            if (KEY_SHARE_ID != null && pdc.has(KEY_SHARE_ID, org.bukkit.persistence.PersistentDataType.STRING)) {
+                pdc.remove(KEY_SHARE_ID);
+            }
+            // Clamp amount to configuredStack
+            if (stack.getAmount() > configuredStack) stack.setAmount(configuredStack);
+        }
+        stack.setItemMeta(meta);
     }
 
     private static String applyPlaceholders(String template, String ticker, String companyName) {
