@@ -1,0 +1,29 @@
+# SmpCurrency Plugin Configuration
+
+# Resource Pack Settings
+resource-pack:
+  # Local hosting settings
+  host-locally: true
+  port: 8080
+  # External URL (used if host-locally is false)
+  url: ""
+  # SHA1 hash of the resource pack file (optional but recommended for security)
+  sha1: ""
+
+# Custom Coin Definitions
+coins:
+  # Basic coin
+  coin:
+    name: "&6Coin"
+    material: PAPER
+    lore:
+      - "&7W Currency"
+      - "&7for ThrowbackSMP"
+
+# Plugin Messages
+messages:
+  no-permission: "&cYou don't have permission to use this command."
+  player-not-found: "&cPlayer not found: {player}"
+  invalid-amount: "&cInvalid amount: {amount}"
+  coin-given: "&aGave {amount} {coin} coins to {player}"
+  coin-received: "&aYou received {amount} {coin} coins!"

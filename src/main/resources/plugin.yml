@@ -1,0 +1,36 @@
+name: smpCurrency
+version: '1.0-SNAPSHOT'
+main: me.shreyjain.smpCurrency.SmpCurrency
+api-version: '1.21'
+prefix: [CurrencyItems] 
+load: STARTUP
+authors: [Shrey Jain]
+description: custom currency items for throwbacksmp
+website: https://shreyjain.me/
+
+commands:
+  currency:
+    description: Main currency command
+    usage: /currency <give|list|texturepack|reload>
+    aliases: [curr, money]
+
+permissions:
+  smpcurrency.*:
+    description: All currency permissions
+    default: op
+    children:
+      smpcurrency.give: true
+      smpcurrency.list: true
+      smpcurrency.reload: true
+
+  smpcurrency.give:
+    description: Permission to give coins to players
+    default: op
+
+  smpcurrency.list:
+    description: Permission to list available coin types
+    default: op
+
+  smpcurrency.reload:
+    description: Permission to reload the plugin configuration
+    default: op
