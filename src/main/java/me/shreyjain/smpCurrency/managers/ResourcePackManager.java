@@ -33,6 +33,7 @@ public class ResourcePackManager {
     private HttpServer httpServer;
     private boolean hostLocally;
     private int port;
+    private int maxPortAttempts = 10; // configurable max attempts
 
     public ResourcePackManager(SmpCurrency plugin) {
         this.plugin = plugin;
@@ -46,6 +47,7 @@ public class ResourcePackManager {
     private void loadResourcePackConfig() {
         this.hostLocally = plugin.getConfig().getBoolean("resource-pack.host-locally", true);
         this.port = plugin.getConfig().getInt("resource-pack.port", 8080);
+        this.maxPortAttempts = plugin.getConfig().getInt("resource-pack.max-port-attempts", 10);
         this.resourcePackUrl = plugin.getConfig().getString("resource-pack.url", "");
         this.resourcePackHash = plugin.getConfig().getString("resource-pack.sha1", "");
 
@@ -53,23 +55,33 @@ public class ResourcePackManager {
             this.resourcePackUrl = "http://localhost:" + port + "/currency-pack.zip";
         } else if (resourcePackUrl.isEmpty()) {
             plugin.getLogger().warning("No resource pack URL configured and local hosting is disabled!");
+        } else if (resourcePackUrl.contains("github.com") && resourcePackUrl.contains("blob/")) {
+            // Convert GitHub blob URL to raw
+            this.resourcePackUrl = resourcePackUrl.replace("github.com", "github.com").replace("/blob/", "/raw/");
         }
     }
 
     private void startLocalServer() {
-        try {
-            httpServer = HttpServer.create(new InetSocketAddress(port), 0);
-            httpServer.createContext("/currency-pack.zip", new ResourcePackHandler());
-            httpServer.setExecutor(null);
-            httpServer.start();
-            plugin.getLogger().info("Started local resource pack server on port " + port);
+        int attempts = 0;
+        while (attempts < maxPortAttempts) {
+            try {
+                httpServer = HttpServer.create(new InetSocketAddress(port), 0);
+                httpServer.createContext("/currency-pack.zip", new ResourcePackHandler());
+                httpServer.setExecutor(null);
+                httpServer.start();
+                plugin.getLogger().info("Started local resource pack server on port " + port);
 
-            // Generate the resource pack on startup
-            generateResourcePack();
-        } catch (IOException e) {
-            plugin.getLogger().severe("Failed to start local resource pack server: " + e.getMessage());
-            hostLocally = false;
+                // Generate the resource pack on startup
+                generateResourcePack();
+                return;
+            } catch (IOException e) {
+                plugin.getLogger().warning("Port " + port + " is busy or unavailable. Trying next port...");
+                port++;
+                attempts++;
+            }
         }
+        plugin.getLogger().severe("Failed to start local resource pack server after " + maxPortAttempts + " attempts. Disabling local hosting.");
+        hostLocally = false;
     }
 
     private void generateResourcePack() {

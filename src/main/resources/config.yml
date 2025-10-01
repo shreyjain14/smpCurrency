@@ -5,6 +5,7 @@ resource-pack:
   # Local hosting settings
   host-locally: true
   port: 8080
+  max-port-attempts: 10
   # External URL (used if host-locally is false)
   url: ""
   # SHA1 hash of the resource pack file (optional but recommended for security)
