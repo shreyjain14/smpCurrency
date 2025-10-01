@@ -75,20 +75,13 @@ public class ResourcePackManager {
     private void generateResourcePack() {
         try {
             Path packPath = Paths.get(plugin.getDataFolder().getAbsolutePath(), "currency-pack.zip");
-
-            // Create the resource pack zip file
             try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(packPath))) {
-                // Add pack.mcmeta
                 addPackMcMeta(zos);
-
-                // Create basic coin structure
                 addBasicCoinResourcePack(zos);
+                addStockResourcePack(zos); // new stock assets
             }
-
-            // Calculate SHA1 hash
             this.resourcePackHash = calculateSHA1(packPath);
             plugin.getLogger().info("Generated resource pack with SHA1: " + resourcePackHash);
-
         } catch (Exception e) {
             plugin.getLogger().severe("Failed to generate resource pack: " + e.getMessage());
         }
@@ -160,6 +153,54 @@ public class ResourcePackManager {
             }
         } catch (Exception e) {
             plugin.getLogger().warning("Failed to add coin texture: " + e.getMessage());
+        }
+    }
+
+    private void addStockResourcePack(ZipOutputStream zos) throws IOException {
+        // Item definition
+        ZipEntry stockItemEntry = new ZipEntry("assets/currency/items/stock.json");
+        zos.putNextEntry(stockItemEntry);
+        String stockItem = "{\n" +
+            "    \"model\": {\n" +
+            "        \"type\": \"minecraft:model\",\n" +
+            "        \"model\": \"currency:item/stock\"\n" +
+            "    }\n" +
+            "}";
+        zos.write(stockItem.getBytes());
+        zos.closeEntry();
+
+        // Model file
+        ZipEntry stockModelEntry = new ZipEntry("assets/currency/models/item/stock.json");
+        zos.putNextEntry(stockModelEntry);
+        String stockModel = "{\n" +
+            "  \"parent\": \"minecraft:item/generated\",\n" +
+            "  \"textures\": {\n" +
+            "    \"layer0\": \"currency:item/stock\"\n" +
+            "  }\n" +
+            "}";
+        zos.write(stockModel.getBytes());
+        zos.closeEntry();
+
+        addStockTexture(zos);
+    }
+
+    private void addStockTexture(ZipOutputStream zos) throws IOException {
+        try (InputStream textureStream = plugin.getResource("assets/stock.png")) { // expect stock.png in resources
+            if (textureStream != null) {
+                ZipEntry textureEntry = new ZipEntry("assets/currency/textures/item/stock.png");
+                zos.putNextEntry(textureEntry);
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+                while ((bytesRead = textureStream.read(buffer)) != -1) {
+                    zos.write(buffer, 0, bytesRead);
+                }
+                zos.closeEntry();
+                plugin.getLogger().info("Added stock texture to resource pack");
+            } else {
+                plugin.getLogger().warning("stock.png not found in resources/assets. Share items will show missing texture.");
+            }
+        } catch (Exception e) {
+            plugin.getLogger().warning("Failed to add stock texture: " + e.getMessage());
         }
     }
 

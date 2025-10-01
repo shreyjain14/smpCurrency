@@ -2,7 +2,7 @@ name: smpCurrency
 version: '1.0-SNAPSHOT'
 main: me.shreyjain.smpCurrency.SmpCurrency
 api-version: '1.21'
-prefix: [CurrencyItems] 
+prefix: CurrencyItems
 load: STARTUP
 authors: [Shrey Jain]
 description: custom currency items for throwbacksmp
@@ -13,6 +13,9 @@ commands:
     description: Main currency command
     usage: /currency <give|list|texturepack|reload>
     aliases: [curr, money]
+  company:
+    description: Company & stock management
+    usage: /company <create|list|info|issue|adddirector>
 
 permissions:
   smpcurrency.*:
@@ -22,6 +25,8 @@ permissions:
       smpcurrency.give: true
       smpcurrency.list: true
       smpcurrency.reload: true
+      smpcurrency.company.create: true
+      smpcurrency.company.issue: true
 
   smpcurrency.give:
     description: Permission to give coins to players
@@ -33,4 +38,12 @@ permissions:
 
   smpcurrency.reload:
     description: Permission to reload the plugin configuration
+    default: op
+
+  smpcurrency.company.create:
+    description: Permission to create companies
+    default: op
+
+  smpcurrency.company.issue:
+    description: Permission to issue shares and manage directors
     default: op
