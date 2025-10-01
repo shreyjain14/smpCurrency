@@ -1,0 +1,107 @@
+name: Publish Version Release
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: version-release
+  cancel-in-progress: false
+
+jobs:
+  detect-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # need full history to create & push tag
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Extract Project Version
+        id: version
+        run: |
+          # Try build.gradle (Gradle Kotlin DSL not used here)
+          RAW=$(grep -E "^[[:space:]]*version[[:space:]]*=" build.gradle | head -n1)
+          if [ -z "$RAW" ]; then
+            echo "Could not find version line in build.gradle" >&2
+            exit 1
+          fi
+          VER=$(echo "$RAW" | sed -E "s/.*version[[:space:]]*=[[:space:]]*'([^']+)'.*/\1/")
+          if [ -z "$VER" ]; then
+            echo "Failed to parse version string" >&2
+            exit 1
+          fi
+          echo "Parsed version: $VER"
+          echo "VERSION=$VER" >> $GITHUB_ENV
+          # Snapshot guard
+          if echo "$VER" | grep -qi SNAPSHOT; then
+            echo "IS_SNAPSHOT=true" >> $GITHUB_ENV
+          else
+            echo "IS_SNAPSHOT=false" >> $GITHUB_ENV
+          fi
+
+      - name: Stop if snapshot version
+        if: env.IS_SNAPSHOT == 'true'
+        run: echo "Snapshot version detected ($VERSION); skipping versioned release." && exit 0
+
+      - name: Check if tag already exists
+        id: check_tag
+        run: |
+          TAG="v${VERSION}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Skip if tag exists
+        if: steps.check_tag.outputs.exists == 'true'
+        run: |
+          echo "Tag v${VERSION} already exists. Skipping release creation." && exit 0
+
+      - name: Build (Gradle)
+        run: ./gradlew clean build -x test
+
+      - name: Create Git Tag
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git tag v${VERSION}
+          git push origin v${VERSION}
+
+      - name: Collect Artifacts
+        id: artifacts
+        run: |
+          ls -1 build/libs
+          PRIMARY_JAR=$(ls build/libs/*.jar | head -n1)
+          echo "PRIMARY_JAR=$PRIMARY_JAR" >> $GITHUB_ENV
+
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: v${{ env.VERSION }}
+          name: Release v${{ env.VERSION }}
+          draft: false
+          prerelease: false
+          generateReleaseNotes: true
+          artifacts: build/libs/*.jar
+          artifactErrorsFailBuild: true
+          allowUpdates: false
+
+      - name: Summary
+        run: |
+          echo "Created release v${VERSION}" >> $GITHUB_STEP_SUMMARY
+          echo "Artifacts:" >> $GITHUB_STEP_SUMMARY
+          ls -1 build/libs >> $GITHUB_STEP_SUMMARY
+
