@@ -20,6 +20,14 @@ coins:
       - "&7W Currency"
       - "&7for ThrowbackSMP"
 
+# Share / Stock Display (placeholders: %ticker%, %name%)
+shares:
+  display:
+    name: "&b%ticker% Share"
+    lore:
+      - "&7Company: &f%name%"
+      - "&7Ticker: &b%ticker%"
+
 # Plugin Messages
 messages:
   no-permission: "&cYou don't have permission to use this command."
