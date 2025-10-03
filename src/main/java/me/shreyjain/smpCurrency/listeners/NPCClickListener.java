@@ -40,7 +40,7 @@ public class NPCClickListener implements Listener {
                 npcManager.handleExchangeNPC(player, isShiftClick);
                 break;
             case BANK:
-                npcManager.handleBankNPC(player);
+                npcManager.handleBankNPC(player, isShiftClick);
                 break;
         }
     }

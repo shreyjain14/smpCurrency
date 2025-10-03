@@ -52,6 +52,12 @@ public class BankCommand implements CommandExecutor, TabCompleter {
                     return true;
                 }
                 return handleWithdraw(player, args[1]);
+            case "deposit":
+                if (args.length < 2) {
+                    player.sendMessage(Component.text("Usage: /bank deposit <amount>", NamedTextColor.RED));
+                    return true;
+                }
+                return handleDeposit(player, args[1]);
             default:
                 sendHelp(player);
                 return true;
@@ -98,20 +104,61 @@ public class BankCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    private boolean handleDeposit(Player player, String amountStr) {
+        int amount;
+        try {
+            amount = Integer.parseInt(amountStr);
+            if (amount <= 0) {
+                player.sendMessage(Component.text("Amount must be greater than 0!", NamedTextColor.RED));
+                return true;
+            }
+        } catch (NumberFormatException e) {
+            player.sendMessage(Component.text("Invalid amount: " + amountStr, NamedTextColor.RED));
+            return true;
+        }
+
+        // Check if player has enough diamonds
+        ItemStack[] contents = player.getInventory().getContents();
+        int playerDiamonds = 0;
+        for (ItemStack item : contents) {
+            if (item != null && item.getType() == Material.DIAMOND) {
+                playerDiamonds += item.getAmount();
+            }
+        }
+
+        if (playerDiamonds < amount) {
+            player.sendMessage(Component.text("You don't have enough diamonds!", NamedTextColor.RED));
+            player.sendMessage(Component.text("Your Diamonds: " + playerDiamonds, NamedTextColor.GRAY));
+            return true;
+        }
+
+        // Remove diamonds from player
+        player.getInventory().removeItem(new ItemStack(Material.DIAMOND, amount));
+
+        // Add diamonds to bank
+        plugin.getDiamondBankManager().addDiamonds(amount);
+
+        // Log deposit
+        plugin.getTransactionLogger().logBankDeposit(player, amount);
+
+        player.sendMessage(Component.text("Successfully deposited " + amount + " diamond(s) to the bank!", NamedTextColor.GREEN));
+        return true;
+    }
+
     private void sendHelp(Player player) {
         player.sendMessage(Component.text("═══════════════════════════", NamedTextColor.GOLD));
         player.sendMessage(Component.text("Bank Commands", NamedTextColor.YELLOW));
         player.sendMessage(Component.text("/bank balance - Check bank balance", NamedTextColor.WHITE));
         player.sendMessage(Component.text("/bank withdraw <amount> - Withdraw diamonds", NamedTextColor.WHITE));
+        player.sendMessage(Component.text("/bank deposit <amount> - Deposit diamonds", NamedTextColor.WHITE));
         player.sendMessage(Component.text("═══════════════════════════", NamedTextColor.GOLD));
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return Arrays.asList("balance", "withdraw");
+            return Arrays.asList("balance", "withdraw", "deposit");
         }
         return new ArrayList<>();
     }
 }
-

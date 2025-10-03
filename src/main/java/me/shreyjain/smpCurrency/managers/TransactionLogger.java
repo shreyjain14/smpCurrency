@@ -73,4 +73,20 @@ public class TransactionLogger {
             plugin.getLogger().warning("Failed to write transaction log: " + e.getMessage());
         }
     }
+
+    /**
+     * Log a bank deposit
+     */
+    public void logBankDeposit(Player player, int diamondAmount) {
+        String timestamp = LocalDateTime.now().format(FORMATTER);
+        String logEntry = String.format("[%s] %s (UUID: %s) deposited %d diamond(s) to bank%n",
+                timestamp, player.getName(), player.getUniqueId(), diamondAmount);
+
+        try (FileWriter fw = new FileWriter(logFile, true);
+             PrintWriter pw = new PrintWriter(fw)) {
+            pw.print(logEntry);
+        } catch (IOException e) {
+            plugin.getLogger().warning("Failed to write transaction log: " + e.getMessage());
+        }
+    }
 }

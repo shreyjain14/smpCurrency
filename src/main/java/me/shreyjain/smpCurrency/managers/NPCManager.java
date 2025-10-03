@@ -168,21 +168,50 @@ public class NPCManager {
     /**
      * Handle bank NPC interaction
      */
-    public void handleBankNPC(Player player) {
+    public void handleBankNPC(Player player, boolean isShiftClick) {
         // Check if player has bank manager permission
         if (!player.hasPermission("smpcurrency.bank.manage")) {
             player.sendMessage(Component.text("You don't have permission to access the diamond bank!", NamedTextColor.RED));
             return;
         }
 
-        // Get total diamonds in bank
-        int totalDiamonds = plugin.getDiamondBankManager().getTotalDiamonds();
+        ItemStack itemInHand = player.getInventory().getItemInMainHand();
 
-        player.sendMessage(Component.text("═══════════════════════════", NamedTextColor.GOLD));
-        player.sendMessage(Component.text("Diamond Bank", NamedTextColor.YELLOW));
-        player.sendMessage(Component.text("Total Diamonds: " + totalDiamonds, NamedTextColor.WHITE));
-        player.sendMessage(Component.text("═══════════════════════════", NamedTextColor.GOLD));
-        player.sendMessage(Component.text("Use /bank withdraw <amount> to withdraw diamonds", NamedTextColor.GRAY));
+        // Check if holding diamonds - deposit them
+        if (itemInHand.getType() == Material.DIAMOND && itemInHand.getAmount() >= 1) {
+            int amount = isShiftClick ? itemInHand.getAmount() : 1;
+
+            // Remove diamonds from hand
+            itemInHand.setAmount(itemInHand.getAmount() - amount);
+
+            // Add diamonds to bank
+            plugin.getDiamondBankManager().addDiamonds(amount);
+
+            // Log deposit
+            plugin.getTransactionLogger().logBankDeposit(player, amount);
+
+            // Send message to player
+            if (amount == 1) {
+                player.sendMessage(Component.text("Successfully deposited 1 diamond to the bank!", NamedTextColor.GREEN));
+            } else {
+                player.sendMessage(Component.text("Successfully deposited " + amount + " diamonds to the bank!", NamedTextColor.GREEN));
+            }
+
+            // Show updated balance
+            int totalDiamonds = plugin.getDiamondBankManager().getTotalDiamonds();
+            player.sendMessage(Component.text("Bank Balance: " + totalDiamonds + " diamond(s)", NamedTextColor.GRAY));
+        } else {
+            // Not holding diamonds - show balance
+            int totalDiamonds = plugin.getDiamondBankManager().getTotalDiamonds();
+
+            player.sendMessage(Component.text("═══════════════════════════", NamedTextColor.GOLD));
+            player.sendMessage(Component.text("Diamond Bank", NamedTextColor.YELLOW));
+            player.sendMessage(Component.text("Total Diamonds: " + totalDiamonds, NamedTextColor.WHITE));
+            player.sendMessage(Component.text("═══════════════════════════", NamedTextColor.GOLD));
+            player.sendMessage(Component.text("Use /bank withdraw <amount> to withdraw diamonds", NamedTextColor.GRAY));
+            player.sendMessage(Component.text("Use /bank deposit <amount> to deposit diamonds", NamedTextColor.GRAY));
+            player.sendMessage(Component.text("Or click with diamonds in hand to deposit them!", NamedTextColor.GRAY));
+        }
     }
 
     /**
